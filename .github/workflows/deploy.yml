@@ -22,9 +22,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Convert image name to lowercase (Docker requirement)
+      # Step 2: Derive a lowercase image name (Docker requires all lowercase)
       - name: Set lowercase image name
-        run: echo "IMAGE_NAME=$(echo '${{ github.repository_owner }}/kora-analytics-api' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        run: |
+          echo "IMAGE_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       # Step 3: Run tests — pipeline stops if any test fails
       - name: Run tests
