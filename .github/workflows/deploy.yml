@@ -9,7 +9,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/kora-analytics-api
 
 jobs:
   test-build-deploy:
@@ -23,14 +22,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Run tests — pipeline stops if any test fails
+      # Step 2: Convert image name to lowercase (Docker requirement)
+      - name: Set lowercase image name
+        run: echo "IMAGE_NAME=$(echo '${{ github.repository_owner }}/kora-analytics-api' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      # Step 3: Run tests — pipeline stops if any test fails
       - name: Run tests
         working-directory: dev-ops/DeployReady/app
         run: |
           npm install
           npm test
 
-      # Step 3: Log in to GitHub Container Registry
+      # Step 4: Log in to GitHub Container Registry
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -38,7 +41,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 4: Build and tag the image with the Git commit SHA
+      # Step 5: Build and tag the image with the Git commit SHA
       - name: Build Docker image
         working-directory: dev-ops/DeployReady
         run: |
@@ -47,13 +50,13 @@ jobs:
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
             .
 
-      # Step 5: Push both tags to GHCR
+      # Step 6: Push both tags to GHCR
       - name: Push image to GHCR
         run: |
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
-      # Step 6: SSH into the server, pull new image, restart container
+      # Step 7: SSH into the server, pull new image, restart container
       - name: Deploy to cloud server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -88,7 +91,7 @@ jobs:
             sleep 5
             curl -f http://localhost/health || exit 1
 
-      # Step 7 (Bonus): Rollback to previous image if deploy step failed
+      # Step 8 (Bonus): Rollback to previous image if deploy step failed
       - name: Rollback on failure
         if: failure()
         uses: appleboy/ssh-action@v1.0.3
