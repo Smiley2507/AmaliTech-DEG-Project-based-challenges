@@ -1,7 +1,4 @@
 # Kora Analytics API — DevOps Implementation
-
-> **Challenge:** DeployReady &nbsp;·&nbsp; **Track:** DevOps
-
 ---
 
 ## Overview

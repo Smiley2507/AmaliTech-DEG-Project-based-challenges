@@ -1,8 +1,4 @@
 # Deployment Documentation — Kora Analytics API
-
-> Everything a new engineer needs to understand, reproduce, and operate
-> the cloud infrastructure behind the Kora Analytics API.
-
 ---
 
 ## Table of Contents
