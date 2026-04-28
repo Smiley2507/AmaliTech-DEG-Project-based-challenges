@@ -1,0 +1,109 @@
+name: CI/CD Pipeline — DeployReady
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dev-ops/DeployReady/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/kora-analytics-api
+
+jobs:
+  test-build-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Run tests — pipeline stops if any test fails
+      - name: Run tests
+        working-directory: dev-ops/DeployReady/app
+        run: |
+          npm install
+          npm test
+
+      # Step 3: Log in to GitHub Container Registry
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 4: Build and tag the image with the Git commit SHA
+      - name: Build Docker image
+        working-directory: dev-ops/DeployReady
+        run: |
+          docker build \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            .
+
+      # Step 5: Push both tags to GHCR
+      - name: Push image to GHCR
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      # Step 6: SSH into the server, pull new image, restart container
+      - name: Deploy to cloud server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Tag current image as 'previous' before replacing it (enables rollback)
+            docker tag ghcr.io/${{ env.IMAGE_NAME }}:latest \
+                       ghcr.io/${{ env.IMAGE_NAME }}:previous || true
+
+            # Log in to GHCR from the server
+            echo "${{ secrets.GHCR_TOKEN }}" | \
+              docker login ghcr.io -u ${{ secrets.GHCR_USERNAME }} --password-stdin
+
+            # Pull the new image
+            docker pull ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+            # Stop and remove the old container
+            docker stop kora-api || true
+            docker rm kora-api || true
+
+            # Start the new container
+            docker run -d \
+              --name kora-api \
+              --restart unless-stopped \
+              -p 80:3000 \
+              -e PORT=3000 \
+              ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+            # Health check — fail the pipeline if app is not responding
+            sleep 5
+            curl -f http://localhost/health || exit 1
+
+      # Step 7 (Bonus): Rollback to previous image if deploy step failed
+      - name: Rollback on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            echo "Deploy failed — rolling back to previous image..."
+            docker stop kora-api || true
+            docker rm kora-api || true
+            docker run -d \
+              --name kora-api \
+              --restart unless-stopped \
+              -p 80:3000 \
+              -e PORT=3000 \
+              ghcr.io/${{ env.IMAGE_NAME }}:previous \
+              || echo "No previous image available — rollback skipped"
