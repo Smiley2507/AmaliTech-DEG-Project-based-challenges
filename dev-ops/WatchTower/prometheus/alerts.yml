@@ -1,0 +1,38 @@
+groups:
+  - name: reyla-service-alerts
+    rules:
+
+      # Fires when any service stops responding on /health for over 1 minute
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been unreachable for more than 1 minute. Prometheus cannot scrape its /metrics endpoint. Immediate attention required."
+
+      # Fires when more than 5% of requests result in 5xx errors over 5 minutes
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{status=~"5.."}[5m])
+            /
+            rate(http_requests_total[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate on {{ $labels.job }}"
+          description: "{{ $labels.job }} has a 5xx error rate above 5% over the last 5 minutes. Current rate: {{ $value | humanizePercentage }}."
+
+      # Fires when Prometheus stops receiving metrics from a service for 2 minutes
+      - alert: ServiceNotScraping
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus cannot scrape {{ $labels.job }}"
+          description: "Prometheus has not successfully scraped {{ $labels.job }} for more than 2 minutes. The service may be down or the /metrics endpoint may be broken."
