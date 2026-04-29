@@ -322,3 +322,54 @@ resource "aws_db_instance" "main" {
     Project = "vela-payments"
   }
 }
+
+# ============================================================
+# PART 4 — STORAGE
+# ============================================================
+
+# --- S3 Bucket ---
+resource "aws_s3_bucket" "assets" {
+  bucket = var.s3_bucket_name
+
+  tags = {
+    Name    = "vela-static-assets"
+    Project = "vela-payments"
+  }
+}
+
+# --- Block all public access ---
+# The bucket is only reachable via the EC2 instance's IAM role.
+# No direct public URL access is possible.
+resource "aws_s3_bucket_public_access_block" "assets" {
+  bucket = aws_s3_bucket.assets.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# --- Enable versioning ---
+# Every object upload is versioned. This means overwritten or deleted
+# files can be recovered, which is important for static assets in a
+# payments context.
+resource "aws_s3_bucket_versioning" "assets" {
+  bucket = aws_s3_bucket.assets.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# --- Server-side encryption ---
+# All objects are encrypted at rest using AES-256.
+# This is a security baseline requirement for any fintech workload.
+resource "aws_s3_bucket_server_side_encryption_configuration" "assets" {
+  bucket = aws_s3_bucket.assets.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
