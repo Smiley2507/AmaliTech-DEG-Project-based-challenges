@@ -1,0 +1,110 @@
+{
+  "title": "Reyla Logistics — Service Overview",
+  "uid": "reyla-overview",
+  "timezone": "browser",
+  "refresh": "15s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "HTTP Request Rate — order-service",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 8 },
+      "targets": [{
+        "expr": "rate(http_requests_total{job=\"order-service\"}[1m])",
+        "legendFormat": "{{method}} {{route}} {{status}}"
+      }],
+      "datasource": "Prometheus"
+    },
+    {
+      "id": 2,
+      "title": "HTTP Request Rate — tracking-service",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 8 },
+      "targets": [{
+        "expr": "rate(http_requests_total{job=\"tracking-service\"}[1m])",
+        "legendFormat": "{{method}} {{route}} {{status}}"
+      }],
+      "datasource": "Prometheus"
+    },
+    {
+      "id": 3,
+      "title": "HTTP Request Rate — notification-service",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 8 },
+      "targets": [{
+        "expr": "rate(http_requests_total{job=\"notification-service\"}[1m])",
+        "legendFormat": "{{method}} {{route}} {{status}}"
+      }],
+      "datasource": "Prometheus"
+    },
+    {
+      "id": 4,
+      "title": "5xx Error Rate — order-service",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 8, "h": 8 },
+      "targets": [{
+        "expr": "rate(http_requests_total{job=\"order-service\", status=~\"5..\"}[5m])",
+        "legendFormat": "5xx errors/s"
+      }],
+      "datasource": "Prometheus"
+    },
+    {
+      "id": 5,
+      "title": "5xx Error Rate — tracking-service",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 8, "w": 8, "h": 8 },
+      "targets": [{
+        "expr": "rate(http_requests_total{job=\"tracking-service\", status=~\"5..\"}[5m])",
+        "legendFormat": "5xx errors/s"
+      }],
+      "datasource": "Prometheus"
+    },
+    {
+      "id": 6,
+      "title": "5xx Error Rate — notification-service",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 8, "w": 8, "h": 8 },
+      "targets": [{
+        "expr": "rate(http_requests_total{job=\"notification-service\", status=~\"5..\"}[5m])",
+        "legendFormat": "5xx errors/s"
+      }],
+      "datasource": "Prometheus"
+    },
+    {
+      "id": 7,
+      "title": "Service Health Status",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "up{job=\"order-service\"}",
+          "legendFormat": "order-service"
+        },
+        {
+          "expr": "up{job=\"tracking-service\"}",
+          "legendFormat": "tracking-service"
+        },
+        {
+          "expr": "up{job=\"notification-service\"}",
+          "legendFormat": "notification-service"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" } } }
+          ]
+        }
+      },
+      "datasource": "Prometheus"
+    }
+  ],
+  "schemaVersion": 36,
+  "version": 1
+}
