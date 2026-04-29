@@ -1,0 +1,8 @@
+aws_region       = "eu-north-1"
+vpc_cidr         = "10.0.0.0/16"
+allowed_ssh_cidr = "197.157.145.163/32"
+db_username      = "velaadmin"
+db_password      = "REPLACE_WITH_STRONG_PASSWORD"
+s3_bucket_name   = "vela-assets-production-YOUR_SUFFIX"
+ec2_ami          = "ami-0a0823e4ea064404d"
+environment      = "production"
