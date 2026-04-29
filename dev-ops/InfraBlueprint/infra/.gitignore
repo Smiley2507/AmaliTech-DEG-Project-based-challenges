@@ -1,0 +1,10 @@
+# Real tfvars with actual credentials — never commit these
+*.tfvars
+!staging.tfvars
+!production.tfvars
+
+# Terraform state files — stored remotely in S3
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
