@@ -245,3 +245,80 @@ resource "aws_instance" "web" {
     Project = "vela-payments"
   }
 }
+
+# ============================================================
+# PART 3 — DATABASE
+# ============================================================
+
+# --- DB Security Group ---
+# The RDS instance only accepts connections from the EC2 instance.
+# No direct internet access is possible.
+resource "aws_security_group" "db_sg" {
+  name        = "db-sg"
+  description = "Allow PostgreSQL inbound from web-sg only"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description     = "PostgreSQL from EC2 only"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.web_sg.id]
+  }
+
+  egress {
+    description = "All outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name    = "vela-db-sg"
+    Project = "vela-payments"
+  }
+}
+
+# --- DB Subnet Group ---
+# RDS requires a subnet group that spans at least two AZs.
+# Both subnets are private — the database is never directly reachable
+# from the internet.
+resource "aws_db_subnet_group" "main" {
+  name       = "vela-db-subnet-group"
+  subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+
+  tags = {
+    Name    = "vela-db-subnet-group"
+    Project = "vela-payments"
+  }
+}
+
+# --- RDS Instance ---
+resource "aws_db_instance" "main" {
+  identifier        = "vela-postgres"
+  engine            = "postgres"
+  engine_version    = "15"
+  instance_class    = "db.t3.micro"
+  allocated_storage = 20
+  storage_type      = "gp2"
+
+  db_name  = "veladb"
+  username = var.db_username
+  password = var.db_password
+
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.db_sg.id]
+
+  # Critical: RDS must not be reachable from the public internet
+  publicly_accessible = false
+
+  # Disables the final snapshot requirement when running terraform destroy.
+  # See the bonus section for automated snapshot support.
+  skip_final_snapshot = true
+
+  tags = {
+    Name    = "vela-postgres"
+    Project = "vela-payments"
+  }
+}
