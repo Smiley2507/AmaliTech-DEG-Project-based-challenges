@@ -30,3 +30,8 @@ variable "s3_bucket_name" {
   description = "Globally unique name for the S3 static assets bucket."
   type        = string
 }
+
+variable "ec2_ami" {
+  description = "AMI ID for the EC2 instance. Must match the deployment region. Amazon Linux 2023 in eu-north-1: ami-0a0823e4ea064404d"
+  type        = string
+}
