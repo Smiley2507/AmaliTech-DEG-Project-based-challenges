@@ -8,12 +8,11 @@ terraform {
     }
   }
 
-  # Uncomment after creating the backend bucket (see README setup instructions)
-  # backend "s3" {
-  #   bucket = "vela-terraform-state-YOUR_UNIQUE_SUFFIX"
-  #   key    = "vela-payments/terraform.tfstate"
-  #   region = "eu-north-1"
-  # }
+ backend "s3" {
+  bucket = "vela-terraform-state-celse"
+  key    = "vela-payments/terraform.tfstate"
+  region = "eu-north-1"
+}
 }
 
 provider "aws" {
